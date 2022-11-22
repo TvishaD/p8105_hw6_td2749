@@ -15,3 +15,18 @@ knitr::opts_chunk$set(
   out.width = "90%")
 ```
 
+# Problem 2
+
+```{r homicide_data set up}
+homicide_data = 
+  read_csv("./data/homicide-data.csv") %>%
+  janitor::clean_names() %>% 
+  unite(city_state, c(city, state), sep = ",", remove = FALSE) %>% 
+  mutate(
+    hom_stat = ifelse(disposition == "Closed by arrest", 1, 0),
+    victim_age = as.numeric(victim_age)) %>% 
+  filter(
+    !(city_state %in% c("Dallas,TX", "Phoenix,AZ", "Kansas City,MO", "Tulsa,AL")),
+    victim_race %in% c("White", "Black"))
+```
+
