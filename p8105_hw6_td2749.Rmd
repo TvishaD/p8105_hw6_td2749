@@ -1,0 +1,17 @@
+---
+title: "p8105_hw6_td2749"
+author: "Tvisha R. Devavarapu"
+date: "2022-11-22"
+output: github_document
+---
+
+```{r setup, message = FALSE}
+library(tidyverse)
+library(ggplot2)
+
+knitr::opts_chunk$set(
+  fig.width = 10,
+  fig.asp = .6,
+  out.width = "90%")
+```
+
