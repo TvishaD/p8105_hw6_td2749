@@ -23,10 +23,26 @@ homicide_data =
   janitor::clean_names() %>% 
   unite(city_state, c(city, state), sep = ",", remove = FALSE) %>% 
   mutate(
-    hom_stat = ifelse(disposition == "Closed by arrest", 1, 0),
+    case_stat = ifelse(disposition == "Open/No arrest", 0, 1),
     victim_age = as.numeric(victim_age)) %>% 
   filter(
     !(city_state %in% c("Dallas,TX", "Phoenix,AZ", "Kansas City,MO", "Tulsa,AL")),
     victim_race %in% c("White", "Black"))
+
+head(homicide_data)
+```
+
+**Note**: In the `homicide_data` df, column `case_stat` indicates the case status. Cases that are closed by arrest and closed without arrest (solved cases) are represented by 1 and cases that are open/no-arrest (unsolved cases) are represented by 0. 
+
+```{r blatimore glm for logistic fit}
+balt_log_fit = 
+  homicide_data %>% 
+  filter(
+    city_state == "Baltimore,MD") %>% 
+  glm(case_stat ~ victim_age + victim_sex + victim_race, data = ., family = binomial())
+
+balt_log_fit = broom::tidy(balt_log_fit)
+
+
 ```
 
