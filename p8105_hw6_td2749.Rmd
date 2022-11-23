@@ -56,7 +56,31 @@ male_vic_OR_lower = exp(confint(balt_log_fit, "victim_sexMale"))[[1]]
 male_vic_OR_upper = exp(confint(balt_log_fit, "victim_sexMale"))[[2]]
 ```
 
-and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
+**OR**: `r male_vic_OR`
+
+**95% Confidence Interval**: (`r male_vic_OR_lower`, `r male_vic_OR_upper`)
+
+The above odds ratio indicates that controlling all other variables, the odds of a homicide being solved is ~57.4% lower (between 44.2% and 67.6%) for a male victim compared to a female victim (in the case of Baltimore, MA between 2007 and 2017).
+
+```{r glm for all cities, message = FALSE}
+hom_all_glm = 
+  homicide_data %>% 
+  nest(data = -city_state) %>% 
+  mutate(
+    models = map(.x = data, ~glm(resolved ~ victim_age + victim_sex + victim_race, data = .x, family = binomial())),
+    ci = map_df(.x = models, ~confint(object = .x, parm = "victim_sexMale")), 
+    results = map(models, broom::tidy)) %>% 
+  select(-data, -models) %>% 
+  unnest(results) %>% 
+  unnest(ci) %>% 
+  filter(term == "victim_sexMale") %>% 
+  mutate(OR = exp(estimate),
+         ci_lower = exp(`2.5 %`),
+         ci_upper = exp(`97.5 %`)) %>% 
+  select(city_state, term, OR, ci_lower, ci_upper)
+
+head(hom_all_glm)
+```
 
 
 
