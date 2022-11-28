@@ -8,7 +8,8 @@ output: github_document
 ```{r setup, message = FALSE}
 library(tidyverse)
 library(ggplot2)
-library(patchwork)
+library(modelr)
+library(mgcv)
 
 knitr::opts_chunk$set(
   fig.width = 10,
@@ -125,17 +126,10 @@ birthweight_data =
 `momage`: Ranging from 12 - 44. 
 
 ```{r linear model suggestion}
-bwt_momage_scatter = 
+bwt_momage_mrace_scatter = 
   birthweight_data %>% 
-    ggplot(aes(x = momage, y = bwt)) +
-    geom_point()
-
-bwt_mrace_scatter = 
-  birthweight_data %>% 
-    ggplot(aes(x = mrace, y = bwt)) +
-    geom_point()
-
-bwt_momage_scatter + bwt_mrace_scatter
+    ggplot(aes(x = momage, y = bwt, color = mrace)) +
+    geom_point(aes(alpha = 0.3))
 ```
 
 ```{r my_model fit}
@@ -155,9 +149,26 @@ birthweight_data %>%
     ggplot(aes(x = pred, y = resid)) +
     geom_point() +
     geom_hline(yintercept = 0)
+
 ```
 
+```{r setting up given models}
+# One using length at birth and gestational age as predictors (main effects only)
+blength_gaweeks_fit = 
+  birthweight_data %>% 
+  lm(bwt ~ blength + gaweeks, data = .)
 
+summary(blength_gaweeks_fit)
+
+# One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+bhead_blength_babysex_fit = 
+  birthweight_data %>% 
+  lm(bwt ~ bhead + blength + babysex + bhead*blength*babysex, data = .)
+
+summary(bhead_blength_babysex_fit)
+```
+
+Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
 
 
 
