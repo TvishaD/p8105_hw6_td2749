@@ -130,6 +130,8 @@ bwt_momage_mrace_scatter =
   birthweight_data %>% 
     ggplot(aes(x = momage, y = bwt, color = mrace)) +
     geom_point(aes(alpha = 0.3))
+
+bwt_momage_mrace_scatter
 ```
 
 ```{r my_model fit}
