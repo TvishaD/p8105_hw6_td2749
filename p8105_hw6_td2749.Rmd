@@ -147,3 +147,21 @@ summary(my_model)
 
 ```
 
+```{r residuals vs. fitted values plot}
+birthweight_data %>% 
+  select(momage, mrace, bwt) %>% 
+  modelr::add_residuals(., my_model) %>% 
+  modelr::add_predictions(., my_model) %>% 
+    ggplot(aes(x = pred, y = resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0)
+```
+
+
+
+
+
+
+
+
+
