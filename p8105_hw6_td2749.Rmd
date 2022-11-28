@@ -8,6 +8,7 @@ output: github_document
 ```{r setup, message = FALSE}
 library(tidyverse)
 library(ggplot2)
+library(patchwork)
 
 knitr::opts_chunk$set(
   fig.width = 10,
@@ -100,6 +101,49 @@ male_female_odds_plot =
 male_female_odds_plot
 ```
 
+**Comment**: Based on the fit model, compared to female homicide victim cases, male homicide victim cases are less likely to be solved in New York, NY. More likely in Albuqurque, NM. (ASK ABOUT LIKELIHOOD OF THE VICTIM BEING MALE/FEMALE IN THE FIRST PLACE). 
 
 
+# Problem 3
+
+```{r birthweight data setup}
+birthweight_data = 
+  read_csv("./data/birthweight.csv") %>%
+  janitor::clean_names() %>% 
+  mutate(
+    babysex = as.factor(babysex),
+    frace = as.factor(frace),
+    malform = as.factor(malform),
+    mrace = as.factor(mrace))
+```
+
+* There are no missing values in this dataset (`r sum(is.na(birthweight_data))`). 
+
+??? Describe your modeling process ??? 
+
+`mrace`: (1 = White, 2 = Black, 3 = Asian, 4 = Puerto Rican, 8 = Other)
+`momage`: Ranging from 12 - 44. 
+
+```{r linear model suggestion}
+bwt_momage_scatter = 
+  birthweight_data %>% 
+    ggplot(aes(x = momage, y = bwt)) +
+    geom_point()
+
+bwt_mrace_scatter = 
+  birthweight_data %>% 
+    ggplot(aes(x = mrace, y = bwt)) +
+    geom_point()
+
+bwt_momage_scatter + bwt_mrace_scatter
+```
+
+```{r my_model fit}
+my_model = 
+  birthweight_data %>% 
+  lm(bwt ~ momage + mrace, data = .)
+
+summary(my_model)
+
+```
 
