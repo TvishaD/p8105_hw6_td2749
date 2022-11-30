@@ -10,6 +10,7 @@ library(tidyverse)
 library(ggplot2)
 library(modelr)
 library(mgcv)
+library(patchwork)
 
 knitr::opts_chunk$set(
   fig.width = 10,
@@ -64,7 +65,7 @@ male_vic_OR_upper = exp(confint(balt_log_fit, "victim_sexMale"))[[2]]
 
 The above odds ratio indicates that controlling all other variables, the odds of a homicide being solved is ~57.4% lower (between 44.2% and 67.6%) for a male victim compared to a female victim (in the case of Baltimore, MA between 2007 and 2017).
 
-```{r glm for all cities, message = FALSE}
+```{r glm for all cities, message = FALSE, warning = FALSE}
 hom_all_glm = 
   homicide_data %>% 
   nest(data = -city_state) %>% 
@@ -102,7 +103,9 @@ male_female_odds_plot =
 male_female_odds_plot
 ```
 
-**Comment**: Based on the fit model, compared to female homicide victim cases, male homicide victim cases are less likely to be solved in New York, NY. More likely in Albuqurque, NM. (ASK ABOUT LIKELIHOOD OF THE VICTIM BEING MALE/FEMALE IN THE FIRST PLACE). 
+**Comment**: Based on the fit model, compared to female homicide victim cases, amongst major US cities, male homicide victim cases have much fewer odds to be solved in New York, NY and considerably higher odds in Albuquerque, NM. In Atlanta, GA and Richmond, VA, male and female homicide victim cases are equally likely to be solved (equal odds ~1). In most of the major US cities included in this analysis, cases with male homicide victims are comparatively (in reference to cases with female homicide victims) less likely to be solved. Only in 4 cities here (Nashville TN, Fresno CA, Stockton CA, Albuquerque NM) here, cases with male homicide victims have higher odds of being solved. 
+
+Note: In this context, it is important to consider that odds ratios are a relative and not an absolute measure of pointing out the differences. For instance, hypothetically, if it is the case that Albuquerque has very few female homicide victims and a low solving rate for female victims, the overall odds ratio would tend to be over-inflated, thereby casting doubt upon the validity of relative measures with extreme underlying contexts.
 
 
 # Problem 3
@@ -120,39 +123,63 @@ birthweight_data =
 
 * There are no missing values in this dataset (`r sum(is.na(birthweight_data))`). 
 
-??? Describe your modeling process ??? 
+I have decided to use the following variables as main effects for my model:
 
-`mrace`: (1 = White, 2 = Black, 3 = Asian, 4 = Puerto Rican, 8 = Other)
-`momage`: Ranging from 12 - 44. 
+* `mrace`: categorical; (1 = White, 2 = Black, 3 = Asian, 4 = Puerto Rican, 8 = Other)
+* `bhead`: continuous; (baby’s head circumference at birth (centimeters) - ranging from 20 to 42 cm.)
+* `blength`: continuous; (baby’s length at birth (centimeteres) - rannging from 20 to 65 cm.)
+* `babysex`: categorical; (baby’s sex (male = 1, female = 2))
+* `smoken`: continuous; (average number of cigarettes smoked per day during pregnancy - ranging from 0 to 60.)
 
-```{r linear model suggestion}
-bwt_momage_mrace_scatter = 
+Following a hypothesized structure, I have included the size of the baby's head, length at birth, and gender at birth to encompass potentially influential physiological aspects. From the mother's perspective, I have decided to include race and smoking status as they are often cited to be instrumental in determining the baby's physique at birth. 
+
+Here are some exploratory graphs displaying basic underlying 1x1 trends: 
+
+```{r exploratory graphs}
+head_bwt = 
   birthweight_data %>% 
-    ggplot(aes(x = momage, y = bwt, color = mrace)) +
-    geom_point(aes(alpha = 0.3))
+  ggplot(aes(x = bhead, y = bwt)) +
+  geom_point(aes(alpha = 0.1, color = mrace))
 
-bwt_momage_mrace_scatter
+length_bwt = 
+  birthweight_data %>% 
+  ggplot(aes(x = blength, y = bwt)) +
+  geom_point(aes(alpha = 0.1, color = mrace))
+
+smoken_bwt = 
+  birthweight_data %>% 
+  ggplot(aes(x = smoken, y = bwt)) +
+  geom_point(aes(alpha = 0.1, color = mrace))  
+
+head_bwt + length_bwt + smoken_bwt
 ```
 
 ```{r my_model fit}
 my_model = 
   birthweight_data %>% 
-  lm(bwt ~ momage + mrace, data = .)
+  lm(bwt ~ mrace + bhead + blength + babysex + smoken, data = .)
 
 summary(my_model)
 
 ```
 
+As revealed in the summary above, every predictor in this case seems to have a statistically significant effect on the response value (birth weight). 
+
+The considerably high r^2 value: 0.7005 indicates that most of the variance in the response value can be explained by the variance in the predictors. 
+
+*Plot: Residuals Vs. Fitted Values*
 ```{r residuals vs. fitted values plot}
 birthweight_data %>% 
-  select(momage, mrace, bwt) %>% 
+  select(mrace, bwt, bhead, blength, babysex, smoken) %>% 
   modelr::add_residuals(., my_model) %>% 
   modelr::add_predictions(., my_model) %>% 
     ggplot(aes(x = pred, y = resid)) +
-    geom_point() +
+    geom_point(aes(alpha = 0.1)) +
     geom_hline(yintercept = 0)
 
 ```
+*Analysis*: The model seems to doing fairly well. Apart from some outliers, most values are equally spread out about the y = 0 line. Based on the x-axis scale, there seems to be a cluster indicating that most of the fitted values lie between 2000 and 4000 grams (2 kg - 4 kg) which makes sense in terms of baby birth weights. 
+
 
 ```{r setting up given models}
 # One using length at birth and gestational age as predictors (main effects only)
@@ -185,7 +212,7 @@ cv_df =
 cv_df = 
   cv_df %>% 
   mutate(
-    my_mod = map(train, ~lm(bwt ~ momage + mrace, data = .x)),
+    my_mod = map(train, ~lm(bwt ~ mrace + bhead + blength + babysex + smoken, data = .x)),
     blength_gaweeks_mod = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
     bhead_blength_babysex_mod = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength*babysex, data = .x))) %>% 
   mutate(
@@ -206,7 +233,7 @@ cv_df %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
-
+Based on the results of the cross validation, my model seems to be doing slightly better than the `bhead_blength_babysex_fit`. It has a low RMSE. 
 
 
 
