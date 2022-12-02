@@ -18,6 +18,52 @@ knitr::opts_chunk$set(
   out.width = "90%")
 ```
 
+# Problem 1
+
+```{r weather_df, cache = TRUE}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+```{r}
+weather_df %>% 
+  modelr::bootstrap(n = 5000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    results = map(models, broom::glance)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results) %>% 
+  ggplot(aes(x = r.squared)) + geom_density()
+```
+Bootstrapping with n = 5000 actually is resulting in a considerably normal distribution. 
+
+```{r}
+weather_df %>% 
+  modelr::bootstrap(n = 5000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    results = map(models, broom::tidy)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results) %>% 
+  select(id = `.id`, term, estimate) %>% 
+  pivot_wider(
+    names_from = term, 
+    values_from = estimate) %>% 
+  rename(beta0 = `(Intercept)`, beta1 = tmin) %>% 
+  mutate(log_b0b1 = log(beta0 * beta1)) %>% 
+  ggplot(aes(x = log_b0b1)) + geom_density()
+```
+Just like above, bootstrapping with n = 5000 actually is resulting in a considerably normal distribution but there are some inconsistencies at the center. 
+
 # Problem 2
 
 ```{r homicide_data set up}
@@ -197,7 +243,6 @@ bhead_blength_babysex_fit =
 summary(bhead_blength_babysex_fit)
 ```
 
-Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
 
 ```{r cross validation}
 cv_df = 
@@ -233,7 +278,8 @@ cv_df %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
-Based on the results of the cross validation, my model seems to be doing slightly better than the `bhead_blength_babysex_fit`. It has a low RMSE. 
+
+Based on the results of the cross validation, my model (RMSE = `r sqrt(mean(my_model$residuals^2))`) seems to be doing slightly better than the `bhead_blength_babysex_fit` (RMSE = `r sqrt(mean(bhead_blength_babysex_fit$residuals^2))`). These models were better than the `blength_gaweeks_fit` whose RMSE is comparatively quite higher (`r sqrt(mean(blength_gaweeks_fit$residuals^2))`).
 
 
 
